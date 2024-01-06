@@ -4,7 +4,7 @@
 #include "container.h"
 
 int main(void) {
-	Container<int> a("key",5);
+	Container<int> a;
 	a.Insert("key2", 7);
 	a.Insert("key1", 3);
 	a.Insert("key4", 10);

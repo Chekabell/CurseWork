@@ -93,17 +93,9 @@ public:
 	tnode<Type>* nul = createEmptyNode();
 
 	Container() {
-	};
-
-	Container(std::string k, Type d) {
-		root = new tnode<Type>(k, d);
-		root->color = false;
-		root->left = nul;
-		root->right = nul;
-		root->parent = nul;
+		root = nul;
 		size = 0;
 	};
-
 	~Container() {};
 
 	tnode<Type>* search(std::string key) {
@@ -173,8 +165,8 @@ public:
 					newNode->parent->parent->leftRotate();
 				}
 			}
-			root->color = false;
-		}		
+		}
+		root->color = false;
 	};
 
 	bool Insert(std::string key, Type data) {
@@ -194,14 +186,11 @@ public:
 		newNode->parent = parent;
 		if (parent == nul) { 
 			root = newNode; 
-			newNode->parent->right = newNode;
-			newNode->parent->left = newNode;
 		}
 		else if ((*parent) > key) parent->left = newNode;
 		else parent->right = newNode;
 		balanceInsert(newNode);
-		this->printTree(root);
-		std::cout << std::endl;
+		size++;
 		return true;
 	};
 
@@ -307,6 +296,9 @@ public:
 			delete minNode;
 		}
 		if (removedNodeColor == false) this->fixRulesAfterRemoval(child);
-		this->printTree(root);
+		size--;
 	};
+	void Clear() {
+
+	}
 };
