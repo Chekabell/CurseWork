@@ -5,12 +5,18 @@
 
 int main(void) {
 	Container<int> a("key",5);
-	//std::cout << a["key"] << std::endl;
 	a.Insert("key2", 7);
-	//std::cout << a["key2"] << std::endl;
 	a.Insert("key1", 3);
-	//std::cout << a["key1"] << std::endl;
-	a.Insert("ke", 6);
-	//std::cout << a["ke"] << std::endl;
+	a.Insert("key4", 10);
+	a.Insert("key3", 2);
+	a.Insert("key5", 123);
+	a.Insert("k", 0);
+	a.Insert("ke", 51);
+	a.Insert("key", 12353);
+	a.Insert("0", 12);
+	a.Insert("key0", 314);
+	a.Insert("ke1",523);
+	a.Insert("ke0", 6134);
+	a.Remove("key3");
 	return 0;
 }
