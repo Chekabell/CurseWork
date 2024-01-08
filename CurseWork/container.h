@@ -1,31 +1,31 @@
 #pragma once
 #include <iostream>
 
+template<class Type>
+class tnode;
+
+template <class Type>
+tnode<Type>* nul = new tnode<Type>();
+
+template <class Type>
+class Container;
 
 template <typename Type>
 class tnode {
+	typedef tnode<Type>* Node;
 public:
 	std::string key;
 	Type data;
-	tnode<Type>* left;
-	tnode<Type>* right;
-	tnode<Type>* parent;
+	Node left;
+	Node right;
+	Node parent;
 	bool color;
 	tnode() {
 		key = "";
-		data = (Type)nullptr;
 		color = false;
 		parent = nullptr;
 		left = nullptr;
 		right = nullptr;
-	};
-	tnode(std::string k) {
-		key = k;
-		data = (Type)nullptr;
-		color = true;
-		left = nullptr;
-		right = nullptr;
-		parent = nullptr;
 	};
 	tnode(std::string k, Type d) {
 		key = k;
@@ -40,38 +40,8 @@ public:
 		right = nullptr;
 		parent = nullptr;
 		key = "";
-		data = (Type)nullptr;
 		color = false;
 	};
-	void swap(tnode<Type>* b) {
-		std::string a_key = this->key;
-		this->key = b->key;
-		b->key = a_key;
-		bool a_col = this->color;
-		this->color = b->color;
-		b->color = a_col;
-		Type a_data = this->data;
-		this->data = b->data;
-		b->data = a_data;
-	};
-	void rightRotate() {
-		this->swap(this->left);
-		tnode<Type> *buffer = this->right;
-		this->right = this->left;
-		this->left = this->right->left;
-		this->right->left = this->right->right;
-		this->right->right = buffer;
-		if (this->left->left != nullptr && this->left->right != nullptr) this->left->parent = this;
-	}
-	void leftRotate() {
-		this->swap(this->right);
-		tnode<Type>* buffer = this->left;
-		this->left = this->right;
-		this->right = this->left->right;
-		this->left->right = this->left->left;
-		this->left->left = buffer;
-		if (this->right->left != nullptr && this->right->right != nullptr) this->right->parent = this;
-	}
 	bool operator > (const std::string& p)
 	{
 		if (key.compare(p) > 0) return true;
@@ -92,18 +62,24 @@ public:
 		if (key.compare(p) != 0) return true;
 		else return false;
 	}
+	static Node getMin(Node node) {
+		if (node == nul<Type>) return nul<Type>;
+		if (node->left == nul<Type>) return node;
+		return getMin(node->left);
+	};
+	static Node getMax(Node node) {
+		if (node == nul<Type>) return nul<Type>;
+		if (node->right == nul<Type>) return node;
+		return getMax(node->right);
+	}
+	static bool nodeExist(Node node) {
+		return (node != nul<Type>) ? true : false;
+	};
 };
-
-template <class Type>
-tnode<Type>* nul = new tnode<Type>();
-
-template <class Type>
-class Container;
 
 template <class Type>
 class Iterator {
 	friend class Container<Type>;
-	friend class tnode<Type>;
 private:
 	typedef Iterator<Type> Self;
 	typedef tnode<Type> Node;
@@ -113,45 +89,37 @@ public:
 	Type& operator*() {
 		return _pNode->data;
 	};
-
 	Type* operator->() {
 		return &(_pNode->data);
 	};
-
 	bool operator != (const Self& it) {
 		return _pNode != it._pNode;
 	};
-
 	bool operator == (const Self& it) {
 		return _pNode == it._pNode;
 	};
-
 	Self& operator++ () {
 		Increment();
 		return *this;
 	};
-
 	Self operator++ (int) {
 		Self temp(*this);
 		Increment();
 		return temp;
 	};
-
 	Self& operator-- () {
 		Decrement();
 		return *this;
 	};
-
 	Self operator-- (int) {
 		Self temp(*this);
 		Decrement();
 		return temp;
 	};
-	
-private:
+protected:
 	void Increment() {
-		if (Container<Type>::nodeExist(_pNode->right)) {
-			_pNode = Container<Type>::getMin(_pNode->right);
+		if (tnode<Type>::nodeExist(_pNode->right)) {
+			_pNode = tnode<Type>::getMin(_pNode->right);
 		}
 		else {
 			Node* par = _pNode->parent;
@@ -160,11 +128,12 @@ private:
 				par = par->parent;
 			}
 			if (_pNode->right != par) _pNode = par;
+			if (par == nul<Type> && _pNode->right == nul<Type>) _pNode = nul<Type>;
 		}
 	};
 	void Decrement() {
-		if (Container<Type>::nodeExist(_pNode->left)) {
-			_pNode = Container<Type>::getMax(_pNode->left);
+		if (tnode<Type>::nodeExist(_pNode->left)) {
+			_pNode = tnode<Type>::getMax(_pNode->left);
 		}
 		else {
 			Node* par = _pNode->parent;
@@ -173,6 +142,7 @@ private:
 				par = par->parent;
 			}
 			if (_pNode->left != par) _pNode = par;
+			if (par == nul<Type> && _pNode->left == nul<Type>) _pNode = nul<Type>;
 		}
 	};
 };
@@ -193,34 +163,17 @@ public:
 	~Container() {
 		ClearTree(root);
 	};
-	int getSize() {
-		return size;
-	};
-	Node Search(std::string key) {
-		Node curr = root;
-		while (curr != nul<Type> && (*curr) != key) {
-			if ((*curr) > key)
-				curr = curr->left;
-			else
-				curr = curr->right;
-		}
-		return curr;
-	};
-
 	Type& operator [](std::string key) {
 		return Search(key)->data;
 	};
 
-	void printTree(Node node) {
-		if (node == nul) return;
-		printTree(node->left);
-		std::cout << node->key;
-		printTree(node->right);
+	int GetSize() {
+		return size;
 	};
 	bool Insert(std::string key, Type data) {
 		Node curr = root;
 		Node parent = nul<Type>;
-		while (nodeExist(curr)) {
+		while (tnode<Type>::nodeExist(curr)) {
 			if (curr->key == key) {
 				return false;
 			}
@@ -251,7 +204,7 @@ public:
 			delete nodeToDelete;
 		}
 		else {
-			Node minNode = getMin(nodeToDelete->right);
+			Node minNode = tnode<Type>::getMin(nodeToDelete->right);
 			nodeToDelete->key = minNode->key;
 			nodeToDelete->data = minNode->data;
 			removedNodeColor = minNode->color;
@@ -259,7 +212,7 @@ public:
 			this->transplantNode(minNode, child);
 			delete minNode;
 		}
-		if (removedNodeColor == false) this->fixRulesAfterRemoval(child);
+		if (removedNodeColor == false) fixAfterRemoval(child);
 		nul<Type>->parent = nullptr;
 		size--;
 	};
@@ -269,24 +222,22 @@ public:
 		size = 0;
 		return ChekTree();
 	};
-	static Node getMin(Node node) {
-		if (node == nul<Type>) return nul<Type>;
-		if (node->left == nul<Type>) return node;
-		return getMin(node->left);
-	};
-	static Node getMax(Node node) {
-		if (node == nul<Type>) return nul<Type>;
-		if (node->right == nul<Type>) return node;
-		return getMax(node->right);
-	}
-	Iter begin() { return Iterator(getMin(root)); }
-	Iter rbegin() { return Iterator(getMax(root)->right); }
-	Iter end() { return Iterator(getMax(root)); }
-	Iter rend() { return Iterator(getMin(root)->left); }
-	static bool nodeExist(Node node) {
-		return (node != nul<Type>) ? true : false;
-	};
+	
+	Iter begin() { return Iterator(tnode<Type>::getMin(root)); }
+	Iter rbegin() { return Iterator(tnode<Type>::getMax(root)->right); }
+	Iter end() { return Iterator(tnode<Type>::getMax(root)); }
+	Iter rend() { return Iterator(tnode<Type>::getMin(root)->left); }
 protected:
+	Node Search(std::string key) {
+		Node curr = root;
+		while (curr != nul<Type> && (*curr) != key) {
+			if ((*curr) > key)
+				curr = curr->left;
+			else
+				curr = curr->right;
+		}
+		return curr;
+	};
 	void balanceInsert(Node newNode) {
 		Node uncle;
 		while (newNode->parent->color) {
@@ -301,12 +252,12 @@ protected:
 				else {
 					if (newNode == newNode->parent->right) {
 						newNode = newNode->parent;
-						newNode->leftRotate();
+						leftRotate(newNode);
 						newNode = newNode->left;
 					}
 					newNode->parent->color = false;
 					newNode->parent->parent->color = true;
-					newNode->parent->parent->rightRotate();
+					rightRotate(newNode->parent->parent);
 				}
 			}
 			else {
@@ -320,12 +271,12 @@ protected:
 				else {
 					if (newNode == newNode->parent->left) {
 						newNode = newNode->parent;
-						newNode->rightRotate();
+						rightRotate(newNode);
 						newNode = newNode->right;
 					}
 					newNode->parent->color = false;
 					newNode->parent->parent->color = true;
-					newNode->parent->parent->leftRotate();
+					leftRotate(newNode->parent->parent);
 				}
 			}
 		}
@@ -333,12 +284,12 @@ protected:
 	};
 	int getChildrenCount(Node node) {
 		int count = 0;
-		if (nodeExist(node->left))count += 1;
-		if (nodeExist(node->right))count += 1;
+		if (tnode<Type>::nodeExist(node->left))count += 1;
+		if (tnode<Type>::nodeExist(node->right))count += 1;
 		return count;
 	};
 	Node getChildOrMock(Node node) {
-		return nodeExist(node->left) ? node->left : node->right;
+		return tnode<Type>::nodeExist(node->left) ? node->left : node->right;
 	};
 	void ClearTree(Node node) {
 		if (node == nul<Type>) return;
@@ -347,9 +298,9 @@ protected:
 		delete node;
 	};
 	bool ChekTree() {
-		return nodeExist(root) ? true : false;
+		return tnode<Type>::nodeExist(root) ? true : false;
 	};
-	void fixRulesAfterRemoval(Node node) {
+	void fixAfterRemoval(Node node) {
 		while (node != root && !node->color) {
 			Node brother;
 			if (node == node->parent->left) {
@@ -357,7 +308,7 @@ protected:
 				if (brother->color) {
 					brother->color = false;
 					node->parent->color = true;
-					node->parent->leftRotate();
+					leftRotate(node->parent);
 					brother = node->parent->right;
 				}
 				if (!brother->left->color && !brother->right->color) {
@@ -368,13 +319,13 @@ protected:
 					if (!brother->right->color) {
 						brother->left->color = false;
 						brother->color = true;
-						brother->rightRotate();
+						rightRotate(brother);
 						brother = node->parent->right;
 					}
 					brother->color = node->parent->color;
 					node->parent->color = false;
 					brother->right->color = false;
-					node->parent->leftRotate();
+					leftRotate(node->parent);
 					node = root;
 				}
 			}
@@ -383,7 +334,7 @@ protected:
 				if (brother->color) {
 					brother->color = false;
 					node->parent->color = true;
-					node->parent->rightRotate();
+					rightRotate(node->parent);
 					brother = node->parent->left;
 				}
 				if (!brother->left->color && !brother->right->color) {
@@ -394,13 +345,13 @@ protected:
 					if (!brother->left->color) {
 						brother->right->color = false;
 						brother->color = true;
-						brother->leftRotate();
+						leftRotate(brother);
 						brother = node->parent->left;
 					}
 					brother->color = node->parent->color;
 					node->parent->color = false;
 					brother->left->color = false;
-					node->parent->rightRotate();
+					rightRotate(node->parent);
 					node = root;
 				}
 			}
@@ -413,6 +364,33 @@ protected:
 		else toNode->parent->right = fromNode;
 		fromNode->parent = toNode->parent;
 	};
+	void swap(Node a, Node b) {
+		std::string a_key = a->key;
+		a->key = b->key;
+		b->key = a_key;
+		bool a_col = a->color;
+		a->color = b->color;
+		b->color = a_col;
+		Type a_data = a->data;
+		a->data = b->data;
+		b->data = a_data;
+	};
+	void rightRotate(Node node) {
+		swap(node, node->left);
+		Node buffer = node->right;
+		node->right = node->left;
+		node->left = node->right->left;
+		node->right->left = node->right->right;
+		node->right->right = buffer;
+		if (node->left != nul<Type>) node->left->parent = node;
+	}
+	void leftRotate(Node node) {
+		swap(node, node->right);
+		Node buffer = node->left;
+		node->left = node->right;
+		node->right = node->left->right;
+		node->left->right = node->left->left;
+		node->left->left = buffer;
+		if (node->right != nul<Type>) node->right->parent = node;
+	}
 };
-
-
