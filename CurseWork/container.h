@@ -11,7 +11,22 @@ public:
 	tnode<Type>* right;
 	tnode<Type>* parent;
 	bool color;
-	tnode() {};
+	tnode() {
+		key = "";
+		data = (Type)nullptr;
+		color = false;
+		parent = nullptr;
+		left = nullptr;
+		right = nullptr;
+	};
+	tnode(std::string k) {
+		key = k;
+		data = (Type)nullptr;
+		color = true;
+		left = nullptr;
+		right = nullptr;
+		parent = nullptr;
+	};
 	tnode(std::string k, Type d) {
 		key = k;
 		data = d;
@@ -55,7 +70,7 @@ public:
 		this->right = this->left->right;
 		this->left->right = this->left->left;
 		this->left->left = buffer;
-		if (this->right->right != nullptr && this->right->right != nullptr) this->right->parent = this;
+		if (this->right->left != nullptr && this->right->right != nullptr) this->right->parent = this;
 	}
 	bool operator > (const std::string& p)
 	{
@@ -77,18 +92,203 @@ public:
 		if (key.compare(p) != 0) return true;
 		else return false;
 	}
-	static tnode<Type>* createEmptyNode() {
-		tnode<Type>* node = new tnode<Type>();
-		node->key = "";
-		node->data = (Type)nullptr;
-		node->color = false;
-		node->parent = nullptr;
-		node->left = nullptr;
-		node->right = nullptr;
-		return node;
+};
+
+template <class Type>
+tnode<Type>* nul = new tnode<Type>();
+
+template <class Type>
+class Container;
+
+template <class Type>
+class Iterator {
+	friend class Container<Type>;
+	friend class tnode<Type>;
+private:
+	typedef Iterator<Type> Self;
+	typedef tnode<Type> Node;
+	Node* _pNode;
+public:
+	Iterator(Node* pNode) :_pNode(pNode) {};
+	Type& operator*() {
+		return _pNode->data;
 	};
-	void balanceInsert(tnode<Type>* newNode) {
-		tnode<Type>* uncle;
+
+	Type* operator->() {
+		return &(_pNode->data);
+	};
+
+	bool operator != (const Self& it) {
+		return _pNode != it._pNode;
+	};
+
+	bool operator == (const Self& it) {
+		return _pNode == it._pNode;
+	};
+
+	Self& operator++ () {
+		Increment();
+		return *this;
+	};
+
+	Self operator++ (int) {
+		Self temp(*this);
+		Increment();
+		return temp;
+	};
+
+	Self& operator-- () {
+		Decrement();
+		return *this;
+	};
+
+	Self operator-- (int) {
+		Self temp(*this);
+		Decrement();
+		return temp;
+	};
+	
+private:
+	void Increment() {
+		if (Container<Type>::nodeExist(_pNode->right)) {
+			_pNode = Container<Type>::getMin(_pNode->right);
+		}
+		else {
+			Node* par = _pNode->parent;
+			while (_pNode == par->right) {
+				_pNode = par;
+				par = par->parent;
+			}
+			if (_pNode->right != par) _pNode = par;
+		}
+	};
+	void Decrement() {
+		if (Container<Type>::nodeExist(_pNode->left)) {
+			_pNode = Container<Type>::getMax(_pNode->left);
+		}
+		else {
+			Node* par = _pNode->parent;
+			while (_pNode == par->left) {
+				_pNode = par;
+				par = par->parent;
+			}
+			if (_pNode->left != par) _pNode = par;
+		}
+	};
+};
+
+template<typename Type>
+class Container {
+	friend class tnode<Type>;
+	typedef tnode<Type>* Node;
+private:
+	Node root;
+	int size;
+public:
+	typedef Iterator<Type> Iter;
+	Container() {
+		root = nul<Type>;
+		size = 0;
+	};
+	~Container() {
+		ClearTree(root);
+	};
+	int getSize() {
+		return size;
+	};
+	Node Search(std::string key) {
+		Node curr = root;
+		while (curr != nul<Type> && (*curr) != key) {
+			if ((*curr) > key)
+				curr = curr->left;
+			else
+				curr = curr->right;
+		}
+		return curr;
+	};
+
+	Type& operator [](std::string key) {
+		return Search(key)->data;
+	};
+
+	void printTree(Node node) {
+		if (node == nul) return;
+		printTree(node->left);
+		std::cout << node->key;
+		printTree(node->right);
+	};
+	bool Insert(std::string key, Type data) {
+		Node curr = root;
+		Node parent = nul<Type>;
+		while (nodeExist(curr)) {
+			if (curr->key == key) {
+				return false;
+			}
+			parent = curr;
+			if ((*curr) > key) curr = curr->left;
+			else curr = curr->right;
+		}
+		Node newNode = new tnode<Type>(key, data);
+		newNode->left = nul<Type>;
+		newNode->right = nul<Type>;
+		newNode->parent = parent;
+		if (parent == nul<Type>) {
+			root = newNode; 
+		}
+		else if ((*parent) > key) parent->left = newNode;
+		else parent->right = newNode;
+		balanceInsert(newNode);
+		size++;
+		return true;
+	};
+	void Remove(std::string key) {
+		Node nodeToDelete = Search(key);
+		Node child;
+		bool removedNodeColor = nodeToDelete->color;
+		if (getChildrenCount(nodeToDelete) < 2) {
+			child = getChildOrMock(nodeToDelete);
+			this->transplantNode(nodeToDelete, child);
+			delete nodeToDelete;
+		}
+		else {
+			Node minNode = getMin(nodeToDelete->right);
+			nodeToDelete->key = minNode->key;
+			nodeToDelete->data = minNode->data;
+			removedNodeColor = minNode->color;
+			child = getChildOrMock(minNode);
+			this->transplantNode(minNode, child);
+			delete minNode;
+		}
+		if (removedNodeColor == false) this->fixRulesAfterRemoval(child);
+		nul<Type>->parent = nullptr;
+		size--;
+	};
+	bool Clear() {
+		ClearTree(root);
+		root = nul<Type>;
+		size = 0;
+		return ChekTree();
+	};
+	static Node getMin(Node node) {
+		if (node == nul<Type>) return nul<Type>;
+		if (node->left == nul<Type>) return node;
+		return getMin(node->left);
+	};
+	static Node getMax(Node node) {
+		if (node == nul<Type>) return nul<Type>;
+		if (node->right == nul<Type>) return node;
+		return getMax(node->right);
+	}
+	Iter begin() { return Iterator(getMin(root)); }
+	Iter rbegin() { return Iterator(getMax(root)->right); }
+	Iter end() { return Iterator(getMax(root)); }
+	Iter rend() { return Iterator(getMin(root)->left); }
+	static bool nodeExist(Node node) {
+		return (node != nul<Type>) ? true : false;
+	};
+protected:
+	void balanceInsert(Node newNode) {
+		Node uncle;
 		while (newNode->parent->color) {
 			if (newNode->parent == newNode->parent->parent->left) {
 				uncle = newNode->parent->parent->right;
@@ -129,136 +329,29 @@ public:
 				}
 			}
 		}
+		root->color = false;
 	};
-	bool nodeExist(tnode<Type>* node) {
-		return (node->left == nullptr && node->right == nullptr) ? true : false; //node != nul;
-	};
-	int getChildrenCount() {
+	int getChildrenCount(Node node) {
 		int count = 0;
-		if (nodeExist(this->left))count += 1;
-		if (nodeExist(this->right))count += 1;
+		if (nodeExist(node->left))count += 1;
+		if (nodeExist(node->right))count += 1;
 		return count;
 	};
-	tnode<Type>* getChildOrMock(tnode<Type>* node) {
-		return nodeExist(this->left) ? this->left : this->right;
+	Node getChildOrMock(Node node) {
+		return nodeExist(node->left) ? node->left : node->right;
 	};
-
-};
-
-
-template<typename Type>
-class Container {
-	friend class tnode<Type>;
-private:
-	tnode<Type>* root;
-	int size;
-	tnode<Type>* nul = tnode<Type>::createEmptyNode();
-public:
-	class Iterator;
-	Container() {
-		root = nul;
-		size = 0;
-	};
-	~Container() {
-		ClearTree(root);
-	};
-	int getSize() {
-		return size;
-	};
-	tnode<Type>* Search(std::string key) {
-		tnode<Type>* curr = root;
-		while (curr != nul && (*curr) != key) {
-			if ((*curr) > key)
-				curr = curr->left;
-			else
-				curr = curr->right;
-		}
-		return curr;
-	};
-
-	Type& operator [](std::string key) {
-		return Search(key)->data;
-	};
-
-	void printTree(tnode<Type>* node) {
-		if (node == nul) return;
-		printTree(node->left);
-		std::cout << node->key;
-		printTree(node->right);
-	};
-	bool Insert(std::string key, Type data) {
-		tnode<Type>* curr = root;
-		tnode<Type>* parent = nul;
-		while (nodeExist(curr)) {
-			if (curr->key == key) {
-				return false;
-			}
-			parent = curr;
-			if ((*curr) > key) curr = curr->left;
-			else curr = curr->right;
-		}
-		tnode<Type>* newNode = new tnode<Type>(key, data);
-		newNode->left = nul;
-		newNode->right = nul;
-		newNode->parent = parent;
-		if (parent == nul) { 
-			root = newNode; 
-		}
-		else if ((*parent) > key) parent->left = newNode;
-		else parent->right = newNode;
-		balanceInsert(newNode);
-		root->color = false;
-		size++;
-		return true;
-	};
-	void Remove(std::string key) {
-		tnode<Type>* nodeToDelete = Search(key);
-		tnode<Type>* child;
-		bool removedNodeColor = nodeToDelete->color;
-		if (nodeToDelete->getChildrenCount() < 2) {
-			child = nodeToDelete->getChildOrMock();
-			this->transplantNode(nodeToDelete, child);
-			delete nodeToDelete;
-		}
-		else {
-			tnode<Type>* minNode = getMin(nodeToDelete->right);
-			nodeToDelete->key = minNode->key;
-			nodeToDelete->data = minNode->data;
-			removedNodeColor = minNode->color;
-			child = minNode->getChildOrMock(minNode);
-			this->transplantNode(minNode, child);
-			delete minNode;
-		}
-		if (removedNodeColor == false) this->fixRulesAfterRemoval(child);
-		size--;
-	};
-	bool Clear() {
-		ClearTree(root);
-		root = nul;
-		size = 0;
-		return ChekTree();
-	};
-	Iterator begin() { return getMin(root)->parent; };
-	Iterator end() { return getMax(root)->parent; }
-	class Iterator {
-		tnode<Type>* curr;
-	public:
-		Iterator(tnode<Type> first) : {curr = first};
-		Type& operator++ ( )
-	};
-protected:
-	void ClearTree(tnode<Type>* node) {
-		if (node == nul) return;
+	void ClearTree(Node node) {
+		if (node == nul<Type>) return;
 		ClearTree(node->left);
 		ClearTree(node->right);
 		delete node;
 	};
 	bool ChekTree() {
-		return root->nodeExist() ? true : false;
+		return nodeExist(root) ? true : false;
 	};
-	void fixRulesAfterRemoval(tnode<Type>* node) {
+	void fixRulesAfterRemoval(Node node) {
 		while (node != root && !node->color) {
-			tnode<Type>* brother;
+			Node brother;
 			if (node == node->parent->left) {
 				brother = node->parent->right;
 				if (brother->color) {
@@ -314,21 +407,12 @@ protected:
 		}
 		node->color = false;
 	};
-	void transplantNode(tnode<Type>* toNode, tnode<Type>* fromNode) {
+	void transplantNode(Node toNode, Node fromNode) {
 		if (toNode == root) root = fromNode;
 		if (toNode == toNode->parent->left) toNode->parent->left = fromNode;
 		else toNode->parent->right = fromNode;
-		if (nodeExist(fromNode)) fromNode->parent = toNode->parent;
+		fromNode->parent = toNode->parent;
 	};
-
-	tnode<Type>* getMin(tnode<Type>* node) {
-		if (node == nul) return nul;
-		if (node->left = nul) return node;
-		return getMin(node->left);
-	};
-	tnode<Type>* getMax(tnode<Type>* node) {
-		if (node == nul) return nul;
-		if (node->right = nul) return node;
-		return getMax(node->right);
-	}
 };
+
+
