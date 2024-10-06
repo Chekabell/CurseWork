@@ -222,12 +222,24 @@ public:
 		size = 0;
 		return ChekTree();
 	};
+	void printTree() {
+		if (root == nul<Type>) return;
+		_printTree(root->left);
+		std::cout << root->key << std::endl;
+		_printTree(root->right);
+	}
 	
 	Iter begin() { return Iterator(tnode<Type>::getMin(root)); }
 	Iter rbegin() { return Iterator(tnode<Type>::getMax(root)->right); }
 	Iter end() { return Iterator(tnode<Type>::getMax(root)); }
 	Iter rend() { return Iterator(tnode<Type>::getMin(root)->left); }
 protected:
+	void _printTree(Node node){
+		if (node == nul<Type>) return;
+		_printTree(node->left);
+		std::cout << node->key << std::endl;
+		_printTree(node->right);
+	}
 	Node Search(std::string key) {
 		Node curr = root;
 		while (curr != nul<Type> && (*curr) != key) {
